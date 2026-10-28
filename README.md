@@ -13,7 +13,7 @@ A free, fact-checked guide by [RelxPods](https://relxpod.ae).
 ![Page weight](https://img.shields.io/badge/page%20weight-~9%20KB%20gzip-162d4a)
 ![No third-party requests](https://img.shields.io/badge/third--party%20requests-0-15803d)
 
-[Shop RELX Dubai](https://relxpod.ae) · [Features](#features) · [Quick start](#quick-start) · [Deploy](#deploy-on-netlify) · [Find us](#find-relxpods-online)
+**[Live site](https://relxpods-guide.netlify.app)** · [Shop RELX Dubai](https://relxpod.ae) · [Features](#features) · [Quick start](#quick-start) · [Deploy](#deploy-on-netlify) · [Find us](#find-relxpods-online)
 
 </div>
 
@@ -77,7 +77,15 @@ The QA check (`check.js`) blocks a deploy if a page uses UK spelling, links to a
 
 ## Deploy on Netlify
 
-1. In Netlify, choose **Add new site → Import from Git** and pick this repo. Build settings come from `netlify.toml`.
+The live site is [relxpods-guide.netlify.app](https://relxpods-guide.netlify.app), deployed by hand from the CLI:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File deploy.ps1
+```
+
+To deploy on every push instead:
+
+1. In Netlify, open the site and connect this repo under **Project configuration → Build & deploy**. Build settings come from `netlify.toml`.
 2. In **Site settings → Environment variables**, add:
 
    | Variable | Example |
