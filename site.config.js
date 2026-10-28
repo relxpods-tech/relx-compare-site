@@ -14,4 +14,27 @@ module.exports = {
   whatsappNumber: process.env.WHATSAPP_NUMBER || '971000000000',
 
   ageLine: 'For existing adult smokers and vapers aged 18+.',
+
+  // RelxPods profiles. Used as schema.org sameAs only: the site links only to RelxPods and WhatsApp.
+  social: [
+    'https://bsky.app/profile/relxpod.bsky.social',
+    'https://mastodon.social/@relxpod',
+    'https://medium.com/@relxpods',
+    'https://substack.com/@relxpoduae',
+    'https://relxdubai.blogspot.com/',
+    'https://www.tumblr.com/relxpod',
+    'https://dev.to/relxpod',
+    'https://github.com/relxpods-tech',
+    'https://gitlab.com/relx-pods',
+    'https://bitbucket.org/relxpods',
+    'https://gravatar.com/relxpods',
+    'https://linktr.ee/relxpods',
+    'https://relxdubai.carrd.co/',
+    'https://www.reddit.com/user/relxpodsuae/',
+    'https://bn.quora.com/profile/Relx-Pods/',
+    'https://flipboard.com/@relxpods',
+    'https://vimeo.com/relxdubai',
+    'https://www.behance.net/relxpods',
+    'https://issuu.com/relxpods',
+  ],
 };

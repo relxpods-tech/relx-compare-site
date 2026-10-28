@@ -45,9 +45,14 @@ for (let i = 0; i < devices.length; i++)
 const files = {}; // relative dist path -> content
 const css = fs.readFileSync(path.join(SRC, 'site.css'), 'utf8');
 const js = fs.readFileSync(path.join(SRC, 'tool.js'), 'utf8');
-const cssUrl = `/assets/site.css?v=${hash(css)}`;
+// Inline the stylesheet: it is small, and inlining removes the only render-blocking request.
+const cssMin = css
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/\s+/g, ' ')
+  .replace(/\s*([{};,>])\s*/g, '$1')
+  .replace(/;}/g, '}')
+  .trim();
 const jsUrl = `/assets/tool.js?v=${hash(js)}`;
-files['assets/site.css'] = css;
 files['assets/tool.js'] = js;
 for (const f of fs.readdirSync(path.join(SRC, 'img'))) files[`assets/img/${f}`] = fs.readFileSync(path.join(SRC, 'img', f));
 files['favicon.ico'] = files['assets/img/favicon-32.png']; // browsers that ask for /favicon.ico accept PNG data
@@ -108,6 +113,15 @@ function deviceArt(id) {
   return `<svg class="art" viewBox="0 0 40 96" width="28" height="68" aria-hidden="true" focusable="false"><rect x="12" y="2" width="16" height="22" rx="6" fill="#d1d5db"/><rect x="8" y="20" width="24" height="72" rx="10" fill="${body}"/><circle cx="20" cy="78" r="3" fill="${glow}"/></svg>`;
 }
 
+// ---------- icons ----------
+const svg = (d) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${d}</svg>`;
+const ICONS = {
+  compare: svg('<path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/>'),
+  device: svg('<rect x="8" y="6" width="8" height="16" rx="3"/><path d="M10 6V3h4v3"/><circle cx="12" cy="17" r="1"/>'),
+  help: svg('<path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.5-.5-.5-2.5z"/>'),
+  bag: svg('<path d="M6 7h12l1 14H5z"/><path d="M9 7a3 3 0 0 1 6 0"/>'),
+};
+
 // ---------- layout ----------
 function breadcrumbs(items) {
   const html = `<nav class="crumbs" aria-label="Breadcrumb"><ol>${items
@@ -131,9 +145,12 @@ function faqSchema(faqs) {
   };
 }
 
+const ORG = { '@type': 'Organization', name: cfg.brand, url: shop('/'), logo: abs('/assets/img/apple-touch-icon.png'), sameAs: cfg.social };
+
 const pages = []; // { path, title, desc, indexable }
 
-function page({ urlPath, file, title, desc, body, schema = [], robots = 'index, follow', waText, main = 'main', extraHead = '' }) {
+function page({ urlPath, file, title, desc, body, schema = [], robots = 'index, follow', waText, main = 'main', extraHead = '', hero = '' }) {
+  const cur = (p) => (urlPath === p || urlPath.startsWith(p + '/') ? ' aria-current="page"' : '');
   const canonical = abs(urlPath === '/' ? '/' : urlPath);
   const ld = schema.map((s) => `<script type="application/ld+json">${JSON.stringify(s).replace(/</g, '\\u003c')}</script>`).join('\n');
   const waLink = wa(waText || `Hi, I'm on the ${title} page.`);
@@ -159,7 +176,7 @@ function page({ urlPath, file, title, desc, body, schema = [], robots = 'index, 
 <link rel="icon" href="/assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="/assets/img/favicon-64.png" sizes="64x64" type="image/png">
 <link rel="apple-touch-icon" href="/assets/img/apple-touch-icon.png">
-<link rel="stylesheet" href="${cssUrl}">
+<style>${cssMin}</style>
 <script>document.documentElement.className='js'</script>
 ${extraHead}${ld}
 </head>
@@ -168,31 +185,54 @@ ${extraHead}${ld}
 <header class="site-header">
   <div class="wrap bar">
     <a class="logo" href="/" aria-label="${esc(cfg.siteName)} home"><img src="/assets/img/logo-mark.webp" width="28" height="48" alt=""><span class="wordmark"><b>RELX</b><span>PODS</span></span><span class="logo-tag">Guide</span></a>
-    <nav aria-label="Main">
-      <ul class="nav">
-        <li><a href="${DEV}">Devices</a></li>
-        <li><a href="${HUB}">Compare</a></li>
-        <li><a href="${HELP}">Help center</a></li>
-        <li><a class="nav-shop" href="${shop('/')}">Shop RelxPods</a></li>
+    <nav class="nav" aria-label="Main">
+      <ul>
+        <li><a href="/"${urlPath === '/' ? ' aria-current="page"' : ''}>Home</a></li>
+        <li><a href="${DEV}"${cur(DEV)}>Devices</a></li>
+        <li><a href="${HUB}"${cur(HUB)}>Compare</a></li>
+        <li><a href="${HELP}"${cur(HELP)}>Help center</a></li>
       </ul>
     </nav>
+    <a class="btn btn-sm header-shop" href="${shop('/')}">${ICONS.bag}Shop RELX Dubai</a>
   </div>
 </header>
+${hero}
 <${main} id="main" class="wrap">
 ${body}
 </${main}>
 <footer class="site-footer">
-  <div class="wrap">
-    <p class="age">${esc(cfg.ageLine)}</p>
-    <ul class="foot-links">
-      <li><a href="${DEV}">Kinds of RELX devices</a></li>
-      <li><a href="${HUB}">RELX device comparison</a></li>
-      <li><a href="${HELP}">Help center</a></li>
-      <li><a href="/about">About this guide</a></li>
-      <li>Shop at <a href="${shop('/')}">RELX Dubai</a></li>
-      <li><a href="${waLink}" data-track="whatsapp_click" data-page="${esc(urlPath)}">WhatsApp us</a></li>
-    </ul>
-    <p class="muted">Data updated <time datetime="${data.updated_at}">${prettyDate(data.updated_at)}</time>. Specs show only what sources confirm or most sources agree on.</p>
+  <div class="wrap foot-grid">
+    <div class="foot-brand">
+      <a class="logo" href="/"><img src="/assets/img/logo-mark.webp" width="28" height="48" alt="" loading="lazy"><span class="wordmark"><b>RELX</b><span>PODS</span></span></a>
+      <p>Free, fact-checked RELX guides for the UAE: compare devices, see which pods fit, and fix common problems.</p>
+      <p class="age">${esc(cfg.ageLine)}</p>
+    </div>
+    <div>
+      <p class="foot-h">Guides</p>
+      <ul class="foot-links">
+        <li><a href="${DEV}">Kinds of RELX devices</a></li>
+        <li><a href="${HUB}">RELX device comparison</a></li>
+        <li><a href="${HUB}#compatible-pods">Pod compatibility chart</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-h">Help</p>
+      <ul class="foot-links">
+        <li><a href="${HELP}">Help center</a></li>
+        <li><a href="${MODES}">Change modes on Infinity 2</a></li>
+        <li><a href="/about">About this guide</a></li>
+      </ul>
+    </div>
+    <div>
+      <p class="foot-h">Shop</p>
+      <ul class="foot-links">
+        <li>Shop at&nbsp;<a href="${shop('/')}">RELX Dubai</a></li>
+        <li><a href="${waLink}" data-track="whatsapp_click" data-page="${esc(urlPath)}">WhatsApp us</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="wrap foot-bottom">
+    <p>Data updated <time datetime="${data.updated_at}">${prettyDate(data.updated_at)}</time>. Specs show only what UAE sources confirm or most of them agree on.</p>
   </div>
 </footer>
 <script src="${jsUrl}" defer></script>
@@ -480,7 +520,7 @@ ${compareResult(a, b)}
         operatingSystem: 'Any',
         isAccessibleForFree: true,
         offers: { '@type': 'Offer', price: '0', priceCurrency: 'AED' },
-        publisher: { '@type': 'Organization', name: cfg.brand, url: shop('/') },
+        publisher: ORG,
       },
       crumbs.schema,
     ],
@@ -852,12 +892,38 @@ ${modesHtml}
 
 // ---------- home, tools, about ----------
 {
-  const body = `<section class="hero">
-  <h1>RELX Device Guide for the UAE</h1>
-  <p class="lead">Compare RELX devices, check which pods fit, and fix common problems. Made by RelxPods.</p>
+  const hero = `<section class="hero">
+  <div class="wrap hero-in">
+    <div>
+      <p class="eyebrow">Free RELX guide for the UAE</p>
+      <h1>Find the right RELX device and fix it fast</h1>
+      <p class="lead">Compare RELX devices side by side, see which pods fit, and solve charging, blinking and taste problems. Every spec is checked against UAE stores.</p>
+      <div class="hero-cta">
+        <a class="btn" href="${HUB}">${ICONS.compare}Compare devices</a>
+        <a class="btn btn-ghost" href="${HELP}">${ICONS.help}Fix a problem</a>
+      </div>
+      <ul class="hero-stats">
+        <li><b>${devices.length}</b>devices</li>
+        <li><b>${pairs.length}</b>comparisons</li>
+        <li><b>${data.symptoms.length + 1}</b>fixes and guides</li>
+      </ul>
+      <ul class="chips-row" aria-label="Popular comparisons">${data.popular
+        .slice(0, 3)
+        .map((p) => {
+          const [x, y] = p.split('-vs-').map((id) => byId[id]);
+          return `<li><a href="${pairPath(x.id, y.id)}">${esc(x.short)} vs ${esc(y.short)}</a></li>`;
+        })
+        .join('')}</ul>
+    </div>
+    <div class="hero-mark" aria-hidden="true"></div>
+  </div>
+</section>`;
+  const body = `<section>
+  <h2 class="vh">What do you need?</h2>
   <div class="tool-cards">
-    <a class="tool-card" href="${HUB}"><strong>Compare RELX devices</strong><span>Infinity 2, Artisan, Essential and more, side by side.</span></a>
-    <a class="tool-card" href="${HELP}"><strong>Fix a RELX problem</strong><span>Not charging, blinking, burnt taste, leaking and more.</span></a>
+    <a class="tool-card" href="${DEV}"><span class="icon">${ICONS.device}</span><strong>Kinds of RELX devices</strong><span>Battery, charging and power modes for the six devices in this guide.</span><span class="go">See devices →</span></a>
+    <a class="tool-card" href="${HUB}"><span class="icon">${ICONS.compare}</span><strong>Compare two devices</strong><span>Infinity 2, Artisan, Essential and more, side by side.</span><span class="go">Start comparing →</span></a>
+    <a class="tool-card" href="${HELP}"><span class="icon">${ICONS.help}</span><strong>Fix a RELX problem</strong><span>Not charging, blinking, burnt taste, leaking and more.</span><span class="go">Get the fix →</span></a>
   </div>
 </section>
 <section>
@@ -899,11 +965,13 @@ ${modesHtml}
   page({
     urlPath: '/',
     file: 'index.html',
+    hero,
     title: 'RELX Guide UAE: Compare Devices and Fix Problems',
     desc: 'Compare RELX devices side by side, see which pods fit, and fix charging, blinking and taste problems. A free guide by RelxPods.',
     body,
     schema: [
-      { '@context': 'https://schema.org', '@type': 'WebSite', name: cfg.siteName, url: abs('/'), publisher: { '@type': 'Organization', name: cfg.brand, url: shop('/') } },
+      { '@context': 'https://schema.org', '@type': 'WebSite', name: cfg.siteName, url: abs('/'), publisher: ORG },
+      { '@context': 'https://schema.org', ...ORG },
     ],
     waText: "Hi, I'm on the RELX guide homepage.",
   });
